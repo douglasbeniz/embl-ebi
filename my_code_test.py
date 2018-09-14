@@ -2,7 +2,7 @@
 # ------------------------------------------------------------------------------
 # EMBL-EBI (SW Dev. 01279) coding exame
 # ------------------------------------------------------------------------------
-# Douglas Bezerra Beniz
+# Douglas Bezerra Beniz, douglasbeniz@gmail.com
 # ------------------------------------------------------------------------------
 # Problem A - query a REST API
 # ------------------------------------------------------------------------------
@@ -15,7 +15,6 @@ from unittest.mock import patch as mock_patch
 
 import pytest
 
-
 """
 Class to take care of all available resources of OpenTargets API
 -------------------
@@ -25,15 +24,19 @@ class OpenTargets:
     def __init__(self):
         self.BASE_URL = 'https://api.opentargets.io/v3/platform/public'
 
+    # Return URL for public association of a specified method
     def _association_url(self, method):
         return self.BASE_URL + '/association' + ('/' + method) if method else ''
 
+    # Return URL for public evidence of a specified method
     def _evidence_url(self, method):
         return self.BASE_URL + '/evidence' + ('/' + method) if method else ''
 
+    # Return URL for public search of a specified method
     def _search_url(self, method):
         return self.BASE_URL + '/search' + ('/' + method) if method else ''
 
+    # Return URL for public utils of a specified method
     def _utils_url(self, method):
         return self.BASE_URL + '/utils' + ('/' + method) if method else ''
 
@@ -85,14 +88,40 @@ class OpenTargets:
         return maxVal, minVal, avgVal, dstVal
 
 """
-Class to perform a suit of specific tests
+Class to perform a suite of specific tests
 """
 class TestOpenTargets:
     # ------------------------------------------------------------------------------
     # Check the output for: ​
     #   "my_code_test -t ENSG00000157764"
     # ------------------------------------------------------------------------------
-    def test_main(self, capfd):
+    def test_main_ensg00000157764(self, capfd):
+        # Mocking system input arguments
+        with mock_patch('sys.argv', ['', '--target=ENSG00000157764']):
+            # Calling main program
+            main()
+
+            # Capturing standard output
+            output = capfd.readouterr()[0]
+
+            # Verifying expected results
+            expected = '---------------------\n'
+            expected += 'Statistics of \'association_score.overall\' filtering by TARGET-ID=ENSG00000157764:\n'
+            expected += '---------------------\n'
+            expected += '  * maximum= 1.00000000,\n'
+            expected += '  * minimum= 1.00000000,\n'
+            expected += '  * average= 1.00000000,\n'
+            expected += '  * standard deviation= 0.00000000\n'
+            expected += '---------------------\n'
+
+            # Asserting...
+            assert output == expected
+
+    # ------------------------------------------------------------------------------
+    # Check the output for: ​
+    #   "my_code_test -d EFO_0002422"
+    # ------------------------------------------------------------------------------
+    def test_main_efo_0002422(self, capfd):
         # Mocking system input arguments
         with mock_patch('sys.argv', ['', '--disease=EFO_0002422']):
             # Calling main program
@@ -114,6 +143,32 @@ class TestOpenTargets:
             # Asserting...
             assert output == expected
 
+    # ------------------------------------------------------------------------------
+    # Check the output for: ​
+    #   "my_code_test -d EFO_0000616"
+    # ------------------------------------------------------------------------------
+    def test_main_efo_0000616(self, capfd):
+        # Mocking system input arguments
+        with mock_patch('sys.argv', ['', '--disease=EFO_0000616']):
+            # Calling main program
+            main()
+
+            # Capturing standard output
+            output = capfd.readouterr()[0]
+
+            # Verifying expected results
+            expected = '---------------------\n'
+            expected += 'Statistics of \'association_score.overall\' filtering by DISEASE-ID=EFO_0000616:\n'
+            expected += '---------------------\n'
+            expected += '  * maximum= 1.00000000,\n'
+            expected += '  * minimum= 1.00000000,\n'
+            expected += '  * average= 1.00000000,\n'
+            expected += '  * standard deviation= 0.00000000\n'
+            expected += '---------------------\n'
+
+            # Asserting...
+            assert output == expected
+
 """
 Principal method
 """
@@ -123,17 +178,28 @@ def main():
 
     # Parsing input paramenters
     parser = ArgumentParser()
-    parser.add_argument("-t", "--target", type=str, 
-        help="Query for target-related information (eg. use the string ENSG00000157764 as a target id).")
-    parser.add_argument("-d", "--disease", type=str, 
+
+    parser.add_argument("-a", "--all", action="store_true",
+        help="Get all filtered associations.")
+    parser.add_argument("-d", "--disease", type=str,
         help="Query for disease-related information (eg. use the string EFO_0002422​ as a disease id).")
-    parser.add_argument("-a", "--all", action="store_true", help="Get all filtered associations.")
-    parser.add_argument("--test", action="store_true", help="Runs a suit of tests")
-    parser.add_argument("-v", "--verbose", help="Increases output verbosity", action="store_true")
+    parser.add_argument("-t", "--target", type=str,
+        help="Query for target-related information (eg. use the string ENSG00000157764 as a target id).")
+    parser.add_argument("--test", action="store_true",
+        help="Runs a suit of tests")
 
     args = parser.parse_args()
 
-    if args.target or args.disease:
+    if args.all:
+        try:
+            # Calling methods on instantiated object to handle with OpenTargets API
+            response = openTargets.get_association_filter()
+
+            # Showing JSON result, if any
+            print(json_dumps(response, indent=2, sort_keys=True))
+        except Exception as e:
+            print('Something wrong when trying to get information or during the results processing!\n\n%s' % e)
+    elif args.target or args.disease:
         # Filter parameters
         target = (args.target if args.target else None)
         disease  = (args.disease if args.disease else None)
@@ -151,15 +217,6 @@ def main():
             print('-' * 21)
             print('  * maximum= %.8f,\n  * minimum= %.8f,\n  * average= %.8f,\n  * standard deviation= %.8f' % response)
             print('-' * 21)
-        except Exception as e:
-            print('Something wrong when trying to get information or during the results processing!\n\n%s' % e)
-    elif args.all:
-        try:
-            # Calling methods on instantiated object to handle with OpenTargets API
-            response = openTargets.get_association_filter()
-
-            # Showing JSON result, if any
-            print(json_dumps(response, indent=2, sort_keys=True))
         except Exception as e:
             print('Something wrong when trying to get information or during the results processing!\n\n%s' % e)
     elif args.test:
