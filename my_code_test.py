@@ -6,21 +6,24 @@
 # ------------------------------------------------------------------------------
 # Problem A - query a REST API
 # ------------------------------------------------------------------------------
-import argparse
+from argparse import ArgumentParser
+from json import dumps as json_dumps
+from numpy import max as np_max, min as np_min, average as np_avg, std as np_std
+from requests import get as url_get
+from sys import argv as sys_argv
+from unittest.mock import patch as mock_patch
+
 import pytest
-import requests
-import json
-import numpy
+
 
 """
 Class to take care of all available resources of OpenTargets API
-For more info, see: http://api.opentargets.io/v3/platform/docs
+-------------------
+    For more info, see: http://api.opentargets.io/v3/platform/docs
 """
 class OpenTargets:
-    BASE_URL = 'https://api.opentargets.io/v3/platform/public'
-
     def __init__(self):
-        pass
+        self.BASE_URL = 'https://api.opentargets.io/v3/platform/public'
 
     def _association_url(self, method):
         return self.BASE_URL + '/association' + ('/' + method) if method else ''
@@ -35,6 +38,7 @@ class OpenTargets:
         return self.BASE_URL + '/utils' + ('/' + method) if method else ''
 
 
+    # Fetch association info from filter method, with or without ID parameters
     def get_association_filter(self, target=None, disease=None):
         payload = {}
         if target:
@@ -42,13 +46,14 @@ class OpenTargets:
         if disease:
             payload['disease'] = disease
 
-        response = requests.get(self._association_url('filter'), params=payload)
+        response = url_get(self._association_url('filter'), params=payload)
 
         if response.status_code != 200:
             raise Exception('Error fetching URL: %s' % response.status_code)
         else:
             return response.json()
 
+    # Return some statistics for filtered association scores
     def stats_association_score(self, target=None, disease=None):
         try:
             response = self.get_association_filter(target=target, disease=disease)
@@ -57,7 +62,7 @@ class OpenTargets:
 
         return self.calc_stats_association_score(response)
 
-
+    # Based on fetched association info gather scores and return some statistics
     def calc_stats_association_score(self, json_data):
         overallValues = []
         try:
@@ -72,10 +77,10 @@ class OpenTargets:
         dstVal = 0.0
 
         if len(overallValues) > 0:
-            maxVal = numpy.max(overallValues)
-            minVal = numpy.min(overallValues)
-            avgVal = numpy.average(overallValues)
-            stdVal = numpy.std(overallValues)
+            maxVal = np_max(overallValues)
+            minVal = np_min(overallValues)
+            avgVal = np_avg(overallValues)
+            stdVal = np_std(overallValues)
 
         return maxVal, minVal, avgVal, dstVal
 
@@ -83,24 +88,41 @@ class OpenTargets:
 Class to perform a suit of specific tests
 """
 class TestOpenTargets:
-    # basic method
-    def calculateOne(self):
-        return 1
+    # ------------------------------------------------------------------------------
+    # Check the output for: ​
+    #   "my_code_test -t ENSG00000157764"
+    # ------------------------------------------------------------------------------
+    def test_main(self, capfd):
+        # Mocking system input arguments
+        with mock_patch('sys.argv', ['', '--disease=EFO_0002422']):
+            # Calling main program
+            main()
 
-    # assertion of calculate_one method return
-    def test_calculateOne(self):
-        assert self.calculateOne() == 1
+            # Capturing standard output
+            output = capfd.readouterr()[0]
+
+            # Verifying expected results
+            expected = '---------------------\n'
+            expected += 'Statistics of \'association_score.overall\' filtering by DISEASE-ID=EFO_0002422:\n'
+            expected += '---------------------\n'
+            expected += '  * maximum= 1.00000000,\n'
+            expected += '  * minimum= 1.00000000,\n'
+            expected += '  * average= 1.00000000,\n'
+            expected += '  * standard deviation= 0.00000000\n'
+            expected += '---------------------\n'
+
+            # Asserting...
+            assert output == expected
 
 """
-main()
+Principal method
 """
 def main():
-    # Instance of an OpenTargets
+    # Instance of OpenTargets class to handle such API
     openTargets = OpenTargets()
 
     # Parsing input paramenters
-    parser = argparse.ArgumentParser()
-    #parser.add_argument("-h", "--help", action="store_true", help="Display all available input parameters.")
+    parser = ArgumentParser()
     parser.add_argument("-t", "--target", type=str, 
         help="Query for target-related information (eg. use the string ENSG00000157764 as a target id).")
     parser.add_argument("-d", "--disease", type=str, 
@@ -112,28 +134,39 @@ def main():
     args = parser.parse_args()
 
     if args.target or args.disease:
-        # parameters
+        # Filter parameters
         target = (args.target if args.target else None)
         disease  = (args.disease if args.disease else None)
-        # calling methods on instantiated object to handle with OpenTargets API
-        response = openTargets.stats_association_score(target = target, disease = disease)
 
-        # Showing the results
-        print('-' * 21)
-        print('Statistics of \'association_score.overall\' filtering by %s%s%s:' % 
-                ('target=' + target if target else '', 
-                 ', ' if (target and disease) else '', 
-                 'disease=' + disease if disease else ''))
-        print('-' * 21)
-        print('  * maximum= %.8f,\n  * minimum= %.8f,\n  * average= %.8f,\n  * standard deviation= %.8f' % response)
-        print('-' * 21)
+        try:
+            # Calling methods on instantiated object to handle with OpenTargets API
+            response = openTargets.stats_association_score(target = target, disease = disease)
+
+            # Showing statistic results
+            print('-' * 21)
+            print('Statistics of \'association_score.overall\' filtering by %s%s%s:' % 
+                    ('TARGET-ID=' + target if target else '', 
+                     ', ' if (target and disease) else '', 
+                     'DISEASE-ID=' + disease if disease else ''))
+            print('-' * 21)
+            print('  * maximum= %.8f,\n  * minimum= %.8f,\n  * average= %.8f,\n  * standard deviation= %.8f' % response)
+            print('-' * 21)
+        except Exception as e:
+            print('Something wrong when trying to get information or during the results processing!\n\n%s' % e)
     elif args.all:
-        response = openTargets.get_association_filter()
+        try:
+            # Calling methods on instantiated object to handle with OpenTargets API
+            response = openTargets.get_association_filter()
 
-        print(json.dumps(response, indent=2, sort_keys=True))
+            # Showing JSON result, if any
+            print(json_dumps(response, indent=2, sort_keys=True))
+        except Exception as e:
+            print('Something wrong when trying to get information or during the results processing!\n\n%s' % e)
     elif args.test:
-        pytest.main(["-v"], plugins=[TestOpenTargets()])
+        # Call PyTest
+        pytest.main(["-vv"], plugins=[TestOpenTargets()])
     else:
+        # Missing arguments
         print ('Unknown command, missing arguments.')
 
 if __name__ == "__main__":
