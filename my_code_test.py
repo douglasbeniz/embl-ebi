@@ -105,14 +105,8 @@ class TestOpenTargets:
             output = capfd.readouterr()[0]
 
             # Verifying expected results
-            expected = '---------------------\n'
-            expected += 'Statistics of \'association_score.overall\' filtering by TARGET-ID=ENSG00000157764:\n'
-            expected += '---------------------\n'
-            expected += '  * maximum= 1.00000000,\n'
-            expected += '  * minimum= 1.00000000,\n'
-            expected += '  * average= 1.00000000,\n'
-            expected += '  * standard deviation= 0.00000000\n'
-            expected += '---------------------\n'
+            expected = self._generate_expected('TARGET-ID=ENSG00000157764',
+                '1.00000000', '1.00000000', '1.00000000', '0.00000000')
 
             # Asserting...
             assert output == expected
@@ -131,14 +125,8 @@ class TestOpenTargets:
             output = capfd.readouterr()[0]
 
             # Verifying expected results
-            expected = '---------------------\n'
-            expected += 'Statistics of \'association_score.overall\' filtering by DISEASE-ID=EFO_0002422:\n'
-            expected += '---------------------\n'
-            expected += '  * maximum= 1.00000000,\n'
-            expected += '  * minimum= 1.00000000,\n'
-            expected += '  * average= 1.00000000,\n'
-            expected += '  * standard deviation= 0.00000000\n'
-            expected += '---------------------\n'
+            expected = self._generate_expected('DISEASE-ID=EFO_0002422',
+                '1.00000000', '1.00000000', '1.00000000', '0.00000000')
 
             # Asserting...
             assert output == expected
@@ -157,17 +145,25 @@ class TestOpenTargets:
             output = capfd.readouterr()[0]
 
             # Verifying expected results
-            expected = '---------------------\n'
-            expected += 'Statistics of \'association_score.overall\' filtering by DISEASE-ID=EFO_0000616:\n'
-            expected += '---------------------\n'
-            expected += '  * maximum= 1.00000000,\n'
-            expected += '  * minimum= 1.00000000,\n'
-            expected += '  * average= 1.00000000,\n'
-            expected += '  * standard deviation= 0.00000000\n'
-            expected += '---------------------\n'
+            expected = self._generate_expected('DISEASE-ID=EFO_0000616',
+                '1.00000000', '1.00000000', '1.00000000', '0.00000000')
 
             # Asserting...
             assert output == expected
+
+    def _generate_expected(self, filter_param, max_val, min_val, avg_val, std_val):
+        # Verifying expected results
+        expected = '---------------------\n'
+        expected += 'Statistics of \'association_score.overall\' filtering by %s:\n' % filter_param
+        expected += '---------------------\n'
+        expected += '  * maximum= %s,\n' % max_val
+        expected += '  * minimum= %s,\n' % min_val
+        expected += '  * average= %s,\n' % avg_val
+        expected += '  * standard deviation= %s\n' % std_val
+        expected += '---------------------\n'
+
+        return expected
+
 
 """
 Principal method
