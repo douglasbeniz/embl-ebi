@@ -71,22 +71,25 @@ def process_wrapper(chunkStart, chunkSize, queue):
 Split the JSON file in chunks that should be process in parallel.
 """
 def chunkify(fname, size=1024*1024):
-    fileEnd = os.path.getsize(fname)
-    if size > fileEnd:
-        size = fileEnd
+    try:
+        fileEnd = os.path.getsize(fname)
+        if size > fileEnd:
+            size = fileEnd
 
-    with open(fname,'rb') as json_file:
-        chunkEnd = json_file.tell()
-
-        while True:
-            chunkStart = chunkEnd
-            json_file.seek(size,1)
-            json_file.readline()
+        with open(fname,'rb') as json_file:
             chunkEnd = json_file.tell()
-            yield chunkStart, chunkEnd - chunkStart
-            if chunkEnd > fileEnd:
-                break
-    json_file.close()
+
+            while True:
+                chunkStart = chunkEnd
+                json_file.seek(size,1)
+                json_file.readline()
+                chunkEnd = json_file.tell()
+                yield chunkStart, chunkEnd - chunkStart
+                if chunkEnd > fileEnd:
+                    break
+        json_file.close()
+    except Exception as e:
+        raise('Error while trying to chunkify full JSON file!\n\n%s' % e)
 
 
 """
@@ -109,11 +112,11 @@ def main():
 
     # Prepare output, at first simply erase, if any, then open to append data
     erase = open(FILE_OUT, 'w')
-    erase.write(', '.join(KEYS) + '\n')
+    erase.write(', '.join(KEYS_PATH) + '\n')
     erase.close()
 
     # Create jobs
-    for chunkStart, chunkSize in chunkify(FILE_NAME): #, size=1024):
+    for chunkStart, chunkSize in chunkify(FILE_NAME):
         jobs.append(pool.apply_async(process_wrapper, (chunkStart, chunkSize, queue)))
 
     # Wait for all jobs to finish
