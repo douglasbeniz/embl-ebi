@@ -1,5 +1,5 @@
 # ------------------------------------------------------------------------------
-# EMBL-EBI (SW Dev. 01279) coding exame
+# EMBL-EBI (SW Dev. 01279) coding exame, Problem-A
 # ------------------------------------------------------------------------------
 # Douglas Bezerra Beniz, douglasbeniz@gmail.com
 # ------------------------------------------------------------------------------
@@ -15,36 +15,23 @@ It was written using Python 3.6 version
     - json
         to install it, e.g.: sudo pip3 install json
 
-    - numpy
-        to install it, e.g.: sudo pip3 install numpy
-
-    - pytest
-        to install it, e.g.: sudo pip3 install pytest
-
-    - requests
-        to install it, e.g.: sudo pip3 install requests
-
-    - unittest
-        to install it, e.g.: sudo pip3 install unittest
+    - pandas
+        to install it, e.g.: sudo pip3 install pandas
 
 # -------------------
 * RUNNING
 # -------------------
 It is not necessary to use 'python3 <script.py>' syntaxe, just './<script.py>' (make sure it has execution permission).
 
-    douglasbeniz>: ./my_code_test.py -h
-    usage: my_code_test.py [-h] [-a] [-d DISEASE] [-t TARGET] [--test]
+    douglasbeniz>: ./evidence_stats.py -h
+    usage: evidence_stats.py [-h] [-s] [-f FILE]
 
     optional arguments:
       -h, --help            show this help message and exit
-      -a, --all             Get all filtered associations.
-      -d DISEASE, --disease DISEASE
-                            Query for disease-related information (eg. use the
-                            string EFO_0002422​ as a disease id).
-      -t TARGET, --target TARGET
-                            Query for target-related information (eg. use the
-                            string ENSG00000157764 as a target id).
-      --test                Runs a suit of tests
+      -s, --stats           Parse JSON file gathering important info and saving
+                            them into a CSV file.
+      -f FILE, --file FILE  Inform a JSON file name to analyze, otherwise will
+                            look for the use default, '17.12_evidence_data.json'.
 
 # -------------------
 END

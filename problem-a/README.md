@@ -1,4 +1,4 @@
-# EMBL-EBI (SW Dev. 01279) coding exame
+# EMBL-EBI (SW Dev. 01279) coding exame, Problem-A
 
 Douglas Bezerra Beniz, douglasbeniz@gmail.com
 
@@ -17,17 +17,8 @@ What things you need to install the software and how to install them
 - json
     to install it, e.g.: sudo pip3 install json
 
-- numpy
-    to install it, e.g.: sudo pip3 install numpy
-
-- pytest
-    to install it, e.g.: sudo pip3 install pytest
-
-- requests
-    to install it, e.g.: sudo pip3 install requests
-
-- unittest
-    to install it, e.g.: sudo pip3 install unittest
+- pandas
+    to install it, e.g.: sudo pip3 install pandas
 ```
 
 ### Running
@@ -36,45 +27,14 @@ It is not necessary to use \'python3 <script.py>\' syntaxe, just \'./<script.py>
 
 
 ```
-    douglasbeniz>: ./my_code_test.py -h
-    usage: my_code_test.py [-h] [-a] [-d DISEASE] [-t TARGET] [--test]
+    douglasbeniz>: ./evidence_stats.py -h
+    usage: evidence_stats.py [-h] [-s] [-f FILE]
 
     optional arguments:
       -h, --help            show this help message and exit
-      -a, --all             Get all filtered associations.
-      -d DISEASE, --disease DISEASE
-                            Query for disease-related information (eg. use the
-                            string EFO_0002422​ as a disease id).
-      -t TARGET, --target TARGET
-                            Query for target-related information (eg. use the
-                            string ENSG00000157764 as a target id).
-      --test                Runs a suit of tests
+      -s, --stats           Parse JSON file gathering important info and saving
+                            them into a CSV file.
+      -f FILE, --file FILE  Inform a JSON file name to analyze, otherwise will
+                            look for the use default, '17.12_evidence_data.json'.
 ```
 
-## Running the tests
-
-* [PyTest](https://docs.pytest.org/en/latest) - The test framework used
-
-```
-douglasbeniz>: pytest my_code_test.py -vv
-```
-
-### or
-
-```
-douglasbeniz>: ./my_code_test.py --test
-```
-
-```
-============================================================ test session starts =============================================================
-platform linux -- Python 3.6.5, pytest-3.8.0, py-1.6.0, pluggy-0.7.1 -- /usr/bin/python3
-cachedir: .pytest_cache
-rootdir: /home/douglasbeniz/Documents/EMBL-EBI/Coding_Exame-13Sep2018/ProposedResolution/embl-ebi, inifile:
-collected 3 items                                                                                                                            
-
-my_code_test.py::TestOpenTargets::test_main_ensg00000157764 PASSED                                                                     [ 33%]
-my_code_test.py::TestOpenTargets::test_main_efo_0002422 PASSED                                                                         [ 66%]
-my_code_test.py::TestOpenTargets::test_main_efo_0000616 PASSED                                                                         [100%]
-
-========================================================== 3 passed in 0.93 seconds ==========================================================
-```

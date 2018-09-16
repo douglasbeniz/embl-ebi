@@ -6,20 +6,19 @@
 # ------------------------------------------------------------------------------
 # Problem B - parse a (huge) JSON dump
 # ------------------------------------------------------------------------------
-import io
-import os
-import json
+import io, os
+
 import multiprocessing as mp
 import pandas as pd
 
 from argparse import ArgumentParser
+from json import loads as json_loads
 from time import localtime, sleep, strftime
 
 FILE_NAME = '17.12_evidence_data.json'
 KEYS_PATH = ['target.id', 'disease.id', 'scores.association_score']
 KEYS_STATS = [('scores.association_score','median'), ('scores.association_score','_top_three')]
-#PARSER_FILE_OUT = 'parsing_results%s.csv' % strftime('_%Y%m%d_%H%M%S', localtime())
-PARSER_FILE_OUT = 'results_20180916_041646.csv'
+PARSER_FILE_OUT = 'parsing_results%s.csv' % strftime('_%Y%m%d_%H%M%S', localtime())
 STATS_FILE_OUT = 'stats_results%s.csv' % strftime('_%Y%m%d_%H%M%S', localtime())
 STOP_TOKEN = '5t@p_T0k3n'
 
@@ -57,7 +56,7 @@ def process_wrapper(jsonFileName, chunkStart, chunkSize, queue):
                 for line in lines:
                     record = ['', '', '']
 
-                    json_object = json.loads(line)
+                    json_object = json_loads(line)
 
                     for index in range(3):
                         key  = KEYS_PATH[index].split('.')[0]
@@ -195,7 +194,7 @@ def main():
             print('Parsing JSON file: \'%s\', this could take a while...\n\n' % json_file)
 
             # At first, parse the JSON file...
-            #parse_json(json_file)
+            parse_json(json_file)
 
             print('-' * 21)
             print('JSON file was successfully parsed as \'%s\'!\n\n' % PARSER_FILE_OUT)
