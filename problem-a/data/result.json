@@ -1,0 +1,135 @@
+{
+    "from": 0,
+    "took": 3,
+    "data_version": "18.08",
+    "query": {
+        "sort": [
+            "harmonic-sum.overall"
+        ],
+        "search": null,
+        "rna_expression_level": 0,
+        "protein_expression_tissue": [],
+        "scorevalue_types": [
+            "overall"
+        ],
+        "datatype": [],
+        "fields": null,
+        "format": "json",
+        "facets_size": null,
+        "disease": [
+            "EFO_0002422"
+        ],
+        "protein_expression_level": 0,
+        "datastructure": "default",
+        "facets": "false",
+        "rna_expression_tissue": [],
+        "target": [
+            "ENSG00000157764"
+        ],
+        "target_class": [],
+        "cap_scores": true,
+        "pathway": [],
+        "size": 10
+    },
+    "total": 1,
+    "data": [
+        {
+            "target": {
+                "gene_info": {
+                    "symbol": "BRAF",
+                    "name": "B-Raf proto-oncogene, serine/threonine kinase"
+                },
+                "id": "ENSG00000157764"
+            },
+            "association_score": {
+                "datatypes": {
+                    "literature": 0.26308613366847117,
+                    "rna_expression": 0,
+                    "genetic_association": 0,
+                    "somatic_mutation": 0.820051866045428,
+                    "known_drug": 0,
+                    "animal_model": 0,
+                    "affected_pathway": 0
+                },
+                "overall": 0.8858233994625458,
+                "datasources": {
+                    "slapenrich": 0,
+                    "expression_atlas": 0,
+                    "europepmc": 0.26308613366847117,
+                    "progeny": 0,
+                    "uniprot_literature": 0,
+                    "phenodigm": 0,
+                    "eva": 0,
+                    "gene2phenotype": 0,
+                    "gwas_catalog": 0,
+                    "intogen": 0,
+                    "genomics_england": 0,
+                    "postgap": 0,
+                    "uniprot": 0,
+                    "chembl": 0,
+                    "cancer_gene_census": 0.820051866045428,
+                    "reactome": 0,
+                    "uniprot_somatic": 0,
+                    "eva_somatic": 0,
+                    "phewas_catalog": 0
+                }
+            },
+            "disease": {
+                "efo_info": {
+                    "therapeutic_area": {
+                        "labels": [
+                            "neoplasm"
+                        ],
+                        "codes": [
+                            "EFO_0000616"
+                        ]
+                    },
+                    "path": [
+                        [
+                            "EFO_0000616",
+                            "EFO_0002422"
+                        ]
+                    ],
+                    "label": "benign neoplasm"
+                },
+                "id": "EFO_0002422"
+            },
+            "is_direct": true,
+            "evidence_count": {
+                "datatypes": {
+                    "literature": 301,
+                    "rna_expression": 0,
+                    "genetic_association": 0,
+                    "somatic_mutation": 12,
+                    "known_drug": 0,
+                    "animal_model": 0,
+                    "affected_pathway": 0
+                },
+                "total": 313,
+                "datasources": {
+                    "slapenrich": 0,
+                    "expression_atlas": 0,
+                    "europepmc": 301,
+                    "progeny": 0,
+                    "uniprot_literature": 0,
+                    "phenodigm": 0,
+                    "eva": 0,
+                    "gene2phenotype": 0,
+                    "gwas_catalog": 0,
+                    "intogen": 0,
+                    "genomics_england": 0,
+                    "postgap": 0,
+                    "uniprot": 0,
+                    "chembl": 0,
+                    "cancer_gene_census": 12,
+                    "reactome": 0,
+                    "uniprot_somatic": 0,
+                    "eva_somatic": 0,
+                    "phewas_catalog": 0
+                }
+            },
+            "id": "ENSG00000157764-EFO_0002422"
+        }
+    ],
+    "size": 1
+}
