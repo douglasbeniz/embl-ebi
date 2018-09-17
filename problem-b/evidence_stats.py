@@ -7,19 +7,23 @@
 # Problem B - parse a (huge) JSON dump
 # ------------------------------------------------------------------------------
 import io, os
+import itertools
 
 import multiprocessing as mp
+import numpy as np
 import pandas as pd
 
 from argparse import ArgumentParser
+from collections import Counter
 from json import loads as json_loads
 from time import localtime, sleep, strftime
 
 FILE_NAME = '17.12_evidence_data.json'
-KEYS_PATH = ['target.id', 'disease.id', 'scores.association_score']
-KEYS_STATS = [('scores.association_score','median'), ('scores.association_score','_top_three')]
+KEYS_PATH = ['target.id', 'disease.id', 'scores.association_score', 'combinations']
+KEYS_STATS = [('scores.association_score','median'), ('scores.association_score','_top_three'), ('target.id', 'list')]
 PARSER_FILE_OUT = 'parsing_results%s.csv' % strftime('_%Y%m%d_%H%M%S', localtime())
 STATS_FILE_OUT = 'stats_results%s.csv' % strftime('_%Y%m%d_%H%M%S', localtime())
+STATS_SHARE_FILE_OUT = 'stats_diseases_share_results%s.csv' % strftime('_%Y%m%d_%H%M%S', localtime())
 STOP_TOKEN = '5t@p_T0k3n'
 
 """
@@ -138,6 +142,9 @@ def parse_json(jsonFile):
         raise Exception('Error while trying to parse the JSON file!\n\n%s' % str(e.args[0]))
 
 
+"""
+Calculate statistics for 'first part'...
+"""
 def process_stats(csvFile):
     try:
         # Load parsed CSV file from previous JSON processment
@@ -163,6 +170,49 @@ def process_stats(csvFile):
     except Exception as e:
         raise Exception('Error while trying to process statistics!\n\n%s' % str(e.args[0]))
 
+
+"""
+Calculate statistics for 'second part', target-target pair sharing at least two (2)
+diseases...
+"""
+def process_diseases_share_stats(csvFile):
+    try:
+        # Load parsed CSV file from previous JSON processment
+        csv_data = pd.read_csv(csvFile)
+
+        def _combine(dataFrame):
+            for targets in dataFrame[KEYS_STATS[2]]:
+                yield from itertools.combinations(targets, 2)       # 'r' parameter is 2 because we're looking for pairs
+
+        # ------------------------------------
+        # Desired:
+        #   > count how many  'target-target​'' pairs share a connection to at
+        # least two diseases;
+        # ------------------------------------
+        # Calculate, this could take a while...
+        subsetLists = csv_data.iloc[:,0:2].groupby(KEYS_PATH[1]).agg({KEYS_PATH[0]:[list]})
+
+        newDataFrame = pd.DataFrame(data=np.array([0]), index=[0], columns=[KEYS_PATH[3]])
+        newDataFrame.loc[0] = ['x']
+
+        idx=0
+        for pair in _combine(subsetLists):
+            newDataFrame.loc[idx] = [pair]
+            idx+=1
+
+        # Creating a CSV file to store results
+        resultsFile = open(STATS_SHARE_FILE_OUT,'w')
+        resultsFile.write('target-target_pair_sharing_more_than_2_diseases\n')
+
+        for item in Counter(newDataFrame[KEYS_PATH[3]]).items():
+            if item[1] >= 2:                                # '1' returns count of occurrencies
+                resultsFile.write("%s\n" % str(item[0]))    # '2' returns pair of tuple
+
+        resultsFile.close()
+    except Exception as e:
+        raise Exception('Error while trying to process diseases sharing statistics!\n\n%s' % str(e.args[0]))
+
+
 """
 Principal method
 """
@@ -175,6 +225,9 @@ def main():
 
     parser.add_argument("-s", "--stats", action="store_true",
         help="Parse JSON file gathering important info and saving them into a CSV file.")
+
+    parser.add_argument("-d", "--share_disease", action="store_true",
+        help="Parse JSON file gathering \'target-target\' pair sharing at least two (2) \'diseases\' and saving them into a CSV file.")
 
     parser.add_argument("-f", "--file", type=str,
         help="Inform a JSON file name to analyze, otherwise will look for the use default, \'17.12_evidence_data.json\'.")
@@ -205,6 +258,28 @@ def main():
             # Then, process statistics...
             process_stats(PARSER_FILE_OUT)
             print('Statistics CSV file was successfully created as \'%s\'!\n' % STATS_FILE_OUT)
+
+        except Exception as e:
+            print('Fatal error!\n\n')
+            print(e.args[0])
+            exit()
+    elif args.share_disease:
+        try:
+            print('-' * 21)
+            print('Parsing JSON file: \'%s\', this could take a while...\n\n' % json_file)
+
+            # At first, parse the JSON file...
+            parse_json(json_file)
+
+            print('-' * 21)
+            print('JSON file was successfully parsed as \'%s\'!\n\n' % PARSER_FILE_OUT)
+
+            print('-' * 21)
+            print('Starting the creation of summarized target-target pairs sharing at least two (2) diseases, this could also take a while...\n\n')
+
+            # Then, process statistics...
+            process_diseases_share_stats(PARSER_FILE_OUT)
+            print('Statistics CSV file of target-target pairs sharing diseases was successfully created as \'%s\'!\n' % STATS_SHARE_FILE_OUT)
 
         except Exception as e:
             print('Fatal error!\n\n')
