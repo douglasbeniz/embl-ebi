@@ -6,7 +6,7 @@
 # ------------------------------------------------------------------------------
 # Problem B - parse a (huge) JSON dump
 # ------------------------------------------------------------------------------
-import io, os
+import io, os, sys
 import itertools
 
 import multiprocessing as mp
@@ -25,6 +25,16 @@ PARSER_FILE_OUT = 'parsing_results%s.csv' % strftime('_%Y%m%d_%H%M%S', localtime
 STATS_FILE_OUT = 'stats_results%s.csv' % strftime('_%Y%m%d_%H%M%S', localtime())
 STATS_SHARE_FILE_OUT = 'stats_diseases_share_results%s.csv' % strftime('_%Y%m%d_%H%M%S', localtime())
 STOP_TOKEN = '5t@p_T0k3n'
+
+
+"""
+Print things to stdout at on one single line dynamically
+"""
+class Printer():
+    def __init__(self,data):
+        sys.stdout.write("\r\x1b[K"+data.__str__())
+        sys.stdout.flush()
+
 
 """
 Listen for messages on the q, writes to file.
@@ -177,38 +187,104 @@ diseases...
 """
 def process_diseases_share_stats(csvFile):
     try:
-        # Load parsed CSV file from previous JSON processment
-        csv_data = pd.read_csv(csvFile)
+        start_time = time.time()
 
         def _combine(dataFrame):
-            for targets in dataFrame[KEYS_STATS[2]]:
-                yield from itertools.combinations(targets, 2)       # 'r' parameter is 2 because we're looking for pairs
+            yield from itertools.combinations(dataFrame, 2)       # 'r' parameter is 2 because we're looking for pairs
 
+        def _listener(queue, df_lock, df_queue, max_size, start_time):
+            try:
+                stopReceived = False
+                while 1:
+                    task = queue.get()
+                    if (task == STOP_TOKEN) and (not stopReceived):
+                        stopReceived = True
+                    elif task == STOP_TOKEN:
+                        queue.put(STOP_TOKEN)
+                    if queue.qsize() == 0 and stopReceived:
+                        break
+                    elif not stopReceived:
+                        csv = pd.read_csv(task, sep=';')
+                        csv.set_index('target_pair', inplace=True)
+                        df_lock.acquire()
+                        try:
+                            df = df_queue.get()
+                            df = df.add(csv,fill_value=0)
+                            df_queue.put(df)
+                        finally:
+                            df_lock.release()
+                        # delete processed file
+                        if os.path.exists(task):
+                            os.remove(task)
+                    Printer("--- %.2f seconds --- %.2f%% ---" % (time.time() - start_time, ((int(max_size)-int(queue.qsize()))/int(max_size))*100))
+            except Exception as e:
+                raise Exception('Error on thread to aggregate final DataFrame!\n\n%s' % str(e.args[0]))
+
+        # Maximum of cores (CPUs) available
+        cores = mp.cpu_count() -1
+        # Initialize objects
+        manager = mp.Manager()
+        queue = manager.Queue()
+        df_queue = mp.Queue()
+        df = pd.DataFrame(columns=[KEYS_PATH[5]], index=[KEYS_PATH[4]])
+        df_queue.put(df)
+        df_lock  = mp.Lock()
+        # Load parsed CSV file from previous JSON processment
+        csv_data = pd.read_csv(csvFile)
         # ------------------------------------
         # Desired:
-        #   > count how many  'target-target​'' pairs share a connection to at
+        #   > count how many  'target-target' pairs share a connection to at
         # least two diseases;
         # ------------------------------------
         # Calculate, this could take a while...
         subsetLists = csv_data.iloc[:,0:2].groupby(KEYS_PATH[1]).agg({KEYS_PATH[0]:[list]})
-
-        newDataFrame = pd.DataFrame(data=np.array([0]), index=[0], columns=[KEYS_PATH[3]])
-        newDataFrame.loc[0] = ['x']
-
-        idx=0
-        for pair in _combine(subsetLists):
-            newDataFrame.loc[idx] = [pair]
-            idx+=1
-
-        # Creating a CSV file to store results
-        resultsFile = open(STATS_SHARE_FILE_OUT,'w')
-        resultsFile.write('target-target_pair_sharing_more_than_2_diseases\n')
-
-        for item in Counter(newDataFrame[KEYS_PATH[3]]).items():
-            if item[1] >= 2:                                # '1' returns count of occurrencies
-                resultsFile.write("%s\n" % str(item[0]))    # '2' returns pair of tuple
-
-        resultsFile.close()
+        # After group all 'targets' by 'disease', get possible combinations
+        combined = subsetLists[KEYS_STATS[2]].agg({KEYS_PATH[0]:[_combine]})
+        fcnt=0
+        print("\nGenerating all possible target-target pair combinations...\n")
+        try:
+            total=len(combined)
+            crnt=0
+            for i in itertools.chain(combined[KEYS_STATS[3]]):
+                cntr_tmp = Counter(i)
+                outputFile = 'results-analysis-%d.csv' % fcnt
+                with open(outputFile, encoding='utf-8-sig', mode='w') as fp:
+                    fp.write('target_pair;count\n')
+                    for target_pair, count in cntr_tmp.items():
+                        fp.write('{};{}\n'.format(target_pair, count))
+                    fp.close()
+                    queue.put(outputFile)
+                fcnt+=1
+                crnt+=1
+                Printer("--- %.2f seconds --- %.2f%% ---" % (time.time() - start_time, (crnt/total)*100))
+        except Exception as e:
+            raise Exception('Error when processing a target-target pair combination!\n\n%s' % str(e.args[0]))
+        print("\nGrouping occurrencies of target pairs and counting them...\n")
+        # Setup a list of processes that we want to run
+        max_size = queue.qsize()
+        start_time = time.time()
+        processes = [mp.Process(target=_listener, args=(queue, df_lock, df_queue, max_size, start_time)) for n_core in range(cores)]
+        # Run processes
+        for p in processes:
+            p.start()
+        # Exit the completed processes
+        # for p in processes:
+        #     p.join()
+        while queue.qsize() > 0:
+            sleep(10)
+        # Now we are done, kill the listener
+        for n_core in range(cores):
+            queue.put(STOP_TOKEN)
+        # Saving final results as a CSV file
+        start_time = time.time()
+        print('\n---------------\nWriting final results...')
+        df = df_queue.get()
+        df.index.rename(KEYS_PATH[4], inplace=True)
+        # All, including those with just one occurrency
+        #df.to_csv(STATS_SHARE_FILE_OUT, sep=';', columns=[KEYS_PATH[5]], index=True)
+        # Filtering only those with at least two occurrencies
+        df[df[KEYS_PATH[5]] >= 2].to_csv(STATS_SHARE_FILE_OUT, sep=';', columns=[KEYS_PATH[5]], index=True)
+        print("\n--- TOTAL --- %.2f seconds ---" % (time.time() - start_time))
     except Exception as e:
         raise Exception('Error while trying to process diseases sharing statistics!\n\n%s' % str(e.args[0]))
 
